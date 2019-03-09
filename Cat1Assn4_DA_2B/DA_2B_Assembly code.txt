@@ -1,0 +1,59 @@
+;
+; AssemblerApplication1.asm
+;
+; Created: 3/8/2019 7:36:28 PM
+; Author : cuicas
+;
+
+
+; Replace with your application code
+	
+.org 0
+	rjmp setup
+.org INT0addr
+	rjmp INT0_vect	
+	Setup:
+		SBI DDRB, 2 ;pin 2 is output
+		LDI R17, 0b00000001 ;(1<<ISC00)	
+		STS EICRA, R17	
+
+		LDI R17, 0b00000001;(1<<INT0)				
+		OUT EIMSK, R17
+		SEI ; Global Enable Interrupt
+	Main:
+		rjmp Main
+	
+	INT0_vect:
+		SBI PORTB,2 ; turn on LED
+			LDI R18, 0
+	count2:
+		LDI R17, 0
+		count1:
+			LDI R16, 0
+			count: 
+				INC R16
+				CPI R16, 253 ; 253
+				BRNE count
+			INC R17
+			CPI R17, 240 ;240 1.247 sex
+			BRNE count1
+		INC R18
+		CPI R18, 41 ;41
+		BRNE count2
+	LDI R20, 0
+	last2:
+		LDI R19, 0
+		last:
+			INC R19
+			CPI R19, 255
+			BRNE last 
+		INC R20
+		CPI R20, 3
+		BRNE last2 
+
+
+	Turnoff:
+		LDI R21, 0 ;
+		OUT PORTB, R21 ; turn off led and restart process
+		RETI
+		;RJMP Main ; restart process.

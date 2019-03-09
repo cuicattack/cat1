@@ -1,0 +1,48 @@
+/*************************** Without Timer Code *******************************************/
+/*
+ * GccApplication1.c
+ *
+ * Created: 3/8/2019 7:01:48 PM
+ * Author : cuicas
+ */ 
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+int main (void)
+{
+	DDRB = _BV(PINB2); 
+	TCCR1B = (1<<CS12) | (1<<CS10);//setting these bits specifically to 5 so pre-scaler is 1024
+	DDRD &= ~(1 << DDD2);     // Clear the PD2 pin
+	PORTD |= (1 << PORTD2);    // turn On the Pull-up// PD2 is now an input with pull-up enabled
+	EICRA |= (1 << ISC00);    // set INT0 to trigger on ANY logic change
+	EIMSK |= (1 << INT0);     // Turns on INT0
+	sei();                    // turn on interrupts
+	while (1)
+	{
+	}
+}
+
+ISR (INT0_vect)// if the button is pressed then perform the following events
+{
+	int x = 0;
+	int y = 0;
+	y = 0;
+	PORTB = _BV(PINB2); //turn on pin2 on port B	
+	while (y <833)
+	{
+		x = 0;
+		while (x<3000)
+		{
+			x += 1;
+		}
+		y +=1;	
+	}	
+	PORTB = 0x00; // ONCE 1.25 s are over turn off LED
+
+}
+
+
+
+
+
+
