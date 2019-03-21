@@ -1,0 +1,39 @@
+/*
+ * GccApplication3.c
+ *
+ * Created: 3/20/2019 1:27:19 PM
+ * Author : cuicas
+ */ 
+#define F_CPU 1000000UL
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+
+void timer0_init()
+{
+	TCCR0B |= (1 << WGM02)|(1 << CS02)|(1 << CS00); //prescaler = 1024 and CTC mode
+	OCR0A = 212;//0x01A8;// on time initialize compare value
+	OCR0B = 142; // off time
+	TIMSK0 |= (1 << OCIE1A)|(1 << OCIE1B); // enable compare interrupt
+	sei(); 	// enable global interrupts
+
+}
+int main(void)
+{
+	DDRB |= (1 << 1); // set portb pin1 as output
+	timer0_init();
+	while(1)
+	{
+	}
+}
+ISR (TIMER0_COMPA_vect)
+{	
+	PORTB = 0x02; // turn on LED
+	_delay_ms(212);
+
+}
+ISR (TIMER0_COMPB_vect)
+{
+	PORTB = 0x00; // Turn off LED
+	_delay_ms(142);
+}

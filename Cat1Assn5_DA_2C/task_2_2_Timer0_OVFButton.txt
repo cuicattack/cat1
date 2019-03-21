@@ -1,0 +1,50 @@
+/*
+ * GccApplication2.c
+ *
+ * Created: 3/16/2019 2:02:12 PM
+ * Author : cuicas
+ */ 
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+//RUNNING ON 8MHZ
+int main (void)
+{
+	DDRB = _BV(PINB2); //all other pins on PORT b are inputs, but we are setting Pin2 as output
+	TCCR0B = (1<<CS02) | (1<<CS00);//setting these bits specifically to 5 so pre-scaler is 1024
+		
+	PORTD |= (1 << PORTD2);    // turn On the Pull-up// PD2 is now an input with pull-up enabled
+	EICRA |= (1 << ISC00);    // set INT0 to trigger on ANY logic change
+	EIMSK |= (1 << INT0);     // Turns on INT0
+	OCR0B = 195;
+	sei();                    // turn on interrupts
+	TIMSK0 = (1<<TOIE0);
+	while (1)
+	{
+	}
+}
+
+ISR(TIMER0_OVF_vect)
+{
+	while(1)
+	{
+		int flagcountOn = 0;
+		if(PINC & _BV(PINC2)) // if the button is pressed then perform the following events
+		{
+			PORTB = _BV(PINB2); //turn on pin B	
+			flagcountOn = 0;
+			while(flagcountOn < 50 ) // while the clock is less than 1.25 s
+			{
+				if (TIFR0 & (1 << OCR0B))
+				{
+					flagcountOn +=1;
+					TCNT0 = 0x00;		// restart clock
+					TIFR0 = 0x01;		// reset flag
+				}
+			}
+			
+		}
+		PORTB = 0x00; // ONCE 1.25 s are over turn off LED
+		
+	}
+}

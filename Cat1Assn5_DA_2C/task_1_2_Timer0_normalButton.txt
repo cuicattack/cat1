@@ -1,0 +1,38 @@
+/*
+ * GccApplication3.c
+ *
+ * Created: 3/20/2019 1:27:19 PM
+ * Author : cuicas
+ */ 
+#include <avr/io.h>
+//RUNNING ON 8MHZ
+int main (void)
+{
+	DDRB = 0xFF;//_BV(PINB2); //all other pins on PORT b are inputs, but we are setting Pin2 as output
+	TCCR0A = (1<<COM0B1); //clear this on compare match
+	TCCR0B = (1<<CS02) | (1<<CS00);//setting these bits specifically to 5 so pre-scaler is 1024
+	TIMSK0 = (1 << OCIE0B);
+	OCR0B = 195;
+	int flagcountOn = 0;
+	while (1)
+	{
+		if(PINC & _BV(PINC2)) // if the button is pressed then perform the following events
+		{
+			PORTB = _BV(PINB2); //turn on pin B
+			flagcountOn = 0;
+			while(flagcountOn < 50 ) // while the clock is less than 1.25 s
+			{
+				if (TIFR0 & (1 << OCR0B))
+				{
+					flagcountOn +=1;
+					TCNT0 = 0x00;		// restart clock
+					TIFR0 = 0x01;		// reset flag
+				}
+			}
+			
+		}
+		PORTB = 0x00; // ONCE 1.25 s are over turn off LED
+	}
+	
+	return 0;
+}

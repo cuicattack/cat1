@@ -1,0 +1,69 @@
+/*****************************Redo assign with timer 0**********************/
+
+
+/*Gabriela Cucas
+ *RUNNING OFF 1MHZ
+ * 2C-2 - which is 2A-1: period of .725 s 
+*/
+#include <avr/io.h>
+#include <avr/interrupt.h>
+int main ()
+{
+	DDRB = 0xff; //set all of portB to output
+	TCCR0B = (1<<CS02) | (1<<CS00);//setting these bits specifically 5 so that pre-scaler is 1024
+	TCCR0A = (1<<COM0A1)|(1<<COM0B1); //clear this on compare match
+	OCR0B = 130;					 // 212*2 = 424 = 0.435s set the on flag
+	OCR0A = 142;					// 142*2 = 284 = 0.29
+	PORTD |= (1 << PORTD2);    // turn On the Pull-up// PD2 is now an input with pull-up enabled
+	EICRA |= (1 << ISC00);    // set INT0 to trigger on ANY logic change
+	EIMSK |= (1 << INT0);     // Turns on INT0
+	sei();                    // turn on interrupts
+	TIMSK0 = (1 << OCIE0B)| (1 << OCIE0A)| (1<<TOIE0); 
+	while (1)
+	{
+
+	}
+}
+	ISR(TIMER0_OVF_vect)
+	{
+		int count = 0; //this is how I will control the sequence of events so LED is on first.
+		int flagcountOn = 0;
+		int flagcountOff = 0;
+		while (1)
+		{
+				if (count %2 == 0)			//this is how I will control the sequence of events so LED is on first.
+				{
+					PORTB = 0x01;		// turn on LED
+					while (flagcountOn<=2)	 //the amount of time in hex = 0.435s LED is on
+					{
+						if (TIFR0 & (1 << OCR0B))
+						{
+							flagcountOn +=1;
+							TCNT0 = 0x00;		// restart clock
+							TIFR0 = 0x01;		// reset flag
+						}
+					}
+					flagcountOn = 0;		//reset flag count on
+					count+=1;				// increase count so that next event turns off LED
+				}
+				else
+				{
+					PORTB = 0x00;		// turn off LED
+					while (flagcountOff<2)	// desired off time in hex = 0.29
+					{
+						if (TIFR0 & (1<<OCR0A))
+						{
+							TCNT0 = 0x00;		// restart clock
+							flagcountOff += 1;
+							TIFR0 = 0x0;		// reset flag
+						}
+					}
+					flagcountOff = 0;		//reset flag count off
+					count+=1;				// increase count so that next event turns on LED
+				}
+		}
+
+	}
+
+// on time 0x1A8 = 0.435 s
+// off time 0x11A = 0.29 s, but after simulating closer to 0x11C

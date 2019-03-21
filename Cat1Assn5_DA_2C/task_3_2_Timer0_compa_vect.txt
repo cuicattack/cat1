@@ -1,0 +1,42 @@
+/*
+ * GccApplication2.c
+ *
+ * Created: 3/16/2019 2:02:12 PM
+ * Author : cuicas
+ * DA-2C -2 pushbutton
+ * RUNNING ON 8MHZ
+ */ 
+#include <avr/io.h>
+#include <avr/interrupt.h>
+int main(void)
+{
+	DDRB = _BV(PINB2);
+	TCCR0A = (1<<COM0B1)|(1<<WGM01); //clear this on compare match
+	TCCR0B |= (1 << CS02)|(1 << CS00); // prescaler 1024 and CTC mode
+	TIMSK0 = (1 << OCIE0B);
+	OCR0B = 255;
+	sei(); 	// enable global interrupts
+	while(1)
+	{
+	}
+}
+ISR (TIMER0_COMPA_vect)
+{
+	int flagcountOn = 0;
+	if(PINC & _BV(PINC2))
+	{
+			PORTB ^= (1<<2); //turn on pin B
+			flagcountOn = 0;
+			while(flagcountOn < 50 ) // while the clock is less than 1.25 s
+			{
+				if (TIFR0 & (1 << OCR0B))
+				{
+					flagcountOn +=1;
+					TCNT0 = 0x00;		// restart clock
+					TIFR0 = 0x01;		// reset flag
+				}
+			}
+			
+	}
+	PORTB = 0x00; // ONCE 1.25 s are over turn off LED
+}
