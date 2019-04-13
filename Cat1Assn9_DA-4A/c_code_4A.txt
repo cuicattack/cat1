@@ -1,0 +1,65 @@
+/*
+ * GccApplication1.c
+ *
+ * Created: 4/10/2019 1:14:37 PM
+ * Author : cuicas
+ */ 
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#define ADC0 0x0 // reading
+#define AVCC 5000 //5V
+#define PRECISION 1024
+#define scale (AVCC/PRECISION)// 5000/1024
+
+uint16_t readADC(uint8_t ADCchannel);
+int main(void)
+{
+	uint16_t volt; // declare variable
+	DDRB = 0xFF;
+	
+	//setting the ADC co
+	ADMUX |= (1<<REFS0); // AVCC with ext capacitor at AREF pin and input ADC0
+	ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0); //enable ADC, set prescaler to 128
+	
+	//setting up external interrupt
+	PCMSK1 = (1<<0)|(1<<1);
+	PCICR = (1<<PCIE1);
+	
+	//Setting the timer
+	TCCR1A = (1<<WGM11);// sets to  fast PWM mode
+	TCCR1B = (1<<WGM12) | (1<<WGM13) | (1<<CS12) | (1<<CS10);	
+	OCR1A = 3124;
+	OCR1B = 12499;
+	sei();
+	
+    while (1) 
+    {
+		volt = readADC(ADC0); //read voltage from this pin
+		volt = ((scale*volt)/10) + 2; //convert the voltage
+		if (volt <= 20)
+		{
+			TCCR1A &= ~(1<<COM1A1);
+			TCCR1A |= (1<<COM1B1);
+		}
+		else
+		{
+			TCCR1A &= ~(1<<COM1B1);
+			TCCR1A |= (1<<COM1A1);
+		}
+	}
+}
+
+ISR(PCINT1_vect)
+{
+	PORTB ^= (1<<2); //start
+}
+
+uint16_t readADC(uint8_t ADCchannel)
+{
+	ADMUX = (ADMUX & 0xF0) | (ADCchannel & 0x0F);//reset the ADMUX to adjust reading
+	ADCSRA |= (1 << ADSC);//start conversion
+	while(ADCSRA & (1<<ADSC));	//Wait until ADC conversation complete. ADSC will be ZERO after completion.
+	return ADC; //return ADC value
+}
+
