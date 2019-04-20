@@ -1,0 +1,163 @@
+
+
+
+//PART ONE: Stepper
+/*
+ * GccApplication1.c
+ *
+ * Created: 4/10/2019 1:14:37 PM
+ * Author : cuicas
+ */ 
+#define F_CPU 8000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+#include <stdio.h>
+#define ADC0 0x0 // reading
+#define AVCC 5000 //5V
+#define PRECISION 1024
+#define scale (AVCC/PRECISION)// 5000/1024
+
+int CW[8] = {0x08,0x0c,0x04,0x06,0x02,0x03,0x01,0x09};
+const int stop_key = 14;  //stop_button connect to Arduino-A0
+int  change_angle=64;  //change the parameter to change the angle of the stepper
+int count = 0;
+int delay;
+
+void Motor_CW()  //the stepper move 360/64 angle at Clockwise
+{
+		
+	for(int i = 0; i < 8; i++)
+	
+	for(int j = 0; j < 8; j++)
+	{
+		PORTB = CW[j];
+		if (delay == 800)
+		{
+			_delay_us(800);
+		}
+		else
+		{
+			_delay_ms(10);
+		}
+		
+	}
+}
+
+uint16_t readADC(uint8_t ADCchannel);
+int main(void)
+{
+	uint16_t volt; // declare variable
+	DDRB = 0xFF;
+	DDRD = 0xFF;
+	//setting the ADC co
+	ADMUX |= (1<<REFS0); // AVCC with ext capacitor at AREF pin and input ADC0
+	ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0); //enable ADC, set pre-scaler to 128
+	
+	////Setting the timer
+	//TCCR1B = (1<<WGM12)|(1<<CS10); // CTC mode , precaler 1 
+	//TIMSK1 = (1 << OCIE1A); //Enable Interrupt
+	//
+	//// 0.001*8*10^6 -1 = 7999
+	//OCR1A = 79999; //10 ms
+	//sei();                   //Enable Global Interrupts
+    while (1) 
+    {
+		volt = readADC(ADC0); //read voltage from this pin
+		volt = ((scale*volt)/10) + 2; //convert the voltage
+		printf("\n %u",volt);
+		Motor_CW();
+		if (volt <= 20)
+		{
+			delay= 800;//OCR1A = 79999;
+			PORTD = 0x01;
+			
+		}
+		else //(volt >=6)
+		{
+			delay = 10000;//OCR1A =6399; // max degree
+			PORTD = 0x02;
+		}
+	}
+}
+
+uint16_t readADC(uint8_t ADCchannel)
+{
+	ADMUX = (ADMUX & 0xF0) | (ADCchannel & 0x0F);//reset the ADMUX to adjust reading
+	ADCSRA |= (1 << ADSC);//start conversion
+	while(ADCSRA & (1<<ADSC));	//Wait until ADC conversation complete. ADSC will be ZERO after completion.
+	return ADC; //return ADC value
+}
+
+ISR(TIMER1_COMPA_vect,ISR_NOBLOCK)
+{
+	count += 1;
+}
+
+
+
+
+
+
+
+/*********************PART TWO: SERVO*****************************/ 
+/*
+ * GccApplication1.c
+ *
+ * Created: 4/10/2019 1:14:37 PM
+ * Author : cuicas
+ */ 
+
+#define F_CPU 8000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#define ADC0 0x0 // reading
+#define AVCC 5000 //5V
+#define PRECISION 1024
+#define scale (AVCC/PRECISION)// 5000/1024
+
+uint16_t readADC(uint8_t ADCchannel);
+int main(void)
+{
+	uint16_t volt; // declare variable
+	DDRB = 0xFF;
+	
+	//setting the ADC co
+	ADMUX |= (1<<REFS0); // AVCC with ext capacitor at AREF pin and input ADC0
+	ADCSRA |= (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0); //enable ADC, set pre-scaler to 128
+	
+	//Setting the timer
+	TCCR1A |= (1<<WGM11)|(1<<COM1A1);//fast PWM mode,  toggle on compare
+	TCCR1B |= (1<<WGM12) | (1<<WGM13) | (1<<CS10); //1 prescaler
+	ICR1 = 0xFFFF; //top clock value
+	
+	OCR1A = 7999;//calculate OCR1A for 0.001(0) then 0.002 = 15999 (90)
+	
+    while (1) 
+    {
+		volt = readADC(ADC0); //read voltage from this pin
+		volt = ((scale*volt)/10) + 2; //convert the voltage
+		_delay_ms(500);
+		if (volt <= 5)
+		{
+			OCR1A = 7999;
+		}
+		else if (volt>=20)
+		{
+			OCR1A = 17599; // max degree
+		}
+		else
+		{
+			continue;
+		}
+		_delay_ms(500);
+	}
+}
+
+uint16_t readADC(uint8_t ADCchannel)
+{
+	ADMUX = (ADMUX & 0xF0) | (ADCchannel & 0x0F);//reset the ADMUX to adjust reading
+	ADCSRA |= (1 << ADSC);//start conversion
+	while(ADCSRA & (1<<ADSC));	//Wait until ADC conversation complete. ADSC will be ZERO after completion.
+	return ADC; //return ADC value
+}
