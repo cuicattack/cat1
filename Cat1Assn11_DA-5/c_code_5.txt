@@ -1,0 +1,95 @@
+
+
+
+#ifndef F_CPU
+#define F_CPU 16000000UL
+
+#endif
+
+#include <avr/io.h>
+
+#include <util/delay.h>
+
+#include <avr/interrupt.h>
+
+#include <stdbool.h>
+
+#include <stdio.h>
+
+#include <string.h>
+
+#ifndef BAUD
+
+#define BAUD 9600
+
+#endif
+
+#include "inctest/STDIO_UART.h"
+
+//Include nRF24L01+ library
+
+#include "inctest/nrf24l01.h"
+
+#include "inctest/nrf24l01-mnemonics.h"
+
+#include "inctest/spi.h"
+volatile bool message_received = false;
+
+volatile bool status = false;
+char tx_message[32];// Define string array
+
+
+int main(void)
+
+{
+	
+	strcpy(tx_message, "Hello from the Other Side!");
+	
+	uart_init();
+	
+	nrf24_init();
+	
+	nrf24_start_listening();
+	
+	status = nrf24_send_message(tx_message);
+	
+	if (status == true) 
+	
+	{
+		printf("Connection Established\n");
+	
+	}
+	
+	while(1)
+
+	{
+		
+		if(message_received)
+
+		{
+			// Message received, print it
+			
+			message_received = false; // Reset to false
+			
+			printf("Received Temperature: %s\n", nrf24_read_message());
+			
+			_delay_ms(500);
+			
+			status = nrf24_send_message(tx_message);
+			
+			if(status == true)
+			
+			{
+				
+				printf("Temperature Transmitted\n");
+			
+	}
+		}
+	
+		}
+}
+
+ISR(INT0_vect)
+{
+	message_received = true;
+}
